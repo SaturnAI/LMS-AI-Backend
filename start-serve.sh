@@ -1,7 +1,7 @@
 #!/bin/bash
 
 # Navigate to the working directory
-cd /root/admin/LMS-AI-Backend || exit 1
+cd /root/LMS-AI-Backend || exit 1
 
 # Activate the virtual environment
 source lms_ai_venv/bin/activate
