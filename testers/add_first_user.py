@@ -14,7 +14,7 @@ from src.mongodb.super_admin_master import SuperAdminMaster
 super_admin_master = SuperAdminMaster()
 
 request_data = {
-    "email": "jainvibhu.2002@gmail.com",
+    "email": "vibhujain.work@gmail.com",
     "name": "Vibhu",
     "phone_number": "9873681590",
 }

@@ -34,6 +34,8 @@ class ProjectConfig:
         "http://localhost:3000",
     ]
 
+    MAX_AUTH_DAYS = 7
+
     # File Uploads
     MAX_LOGO_SIZE_MB: int = 2  # Company logo / profile picture hard limit
     MAX_UPLOAD_SIZE_MB: int = 5  # Middleware-level cap for any upload

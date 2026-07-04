@@ -393,7 +393,7 @@ class SendEmail:
         """
 
     def generate_add_user_email_html(self, receiver_email: str, password: str) -> str:
-        login_url = Credentials.redirect_url
+        login_url = Credentials.redirect_url + "/login"
         support_email = self._support_email()
 
         content_html = f"""

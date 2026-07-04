@@ -55,7 +55,7 @@ async def google_oauth_start(request: Request):
             status_code=HTTPStatus.SERVICE_UNAVAILABLE,
         )
 
-    redirect_uri = Credentials.redirect_url
+    redirect_uri = Credentials.redirect_url + "/api/google/callback"
     if not redirect_uri:
         return JSONResponse(
             {"is_successful": False, "message": "SMTP_OAUTH_REDIRECT_URI is not configured on this server."},
@@ -129,7 +129,7 @@ async def google_oauth_callback(request: Request, code: str = "", state: str = "
             status_code=HTTPStatus.BAD_REQUEST,
         )
 
-    redirect_uri = Credentials.redirect_url
+    redirect_uri = Credentials.redirect_url + "/api/google/callback"
     response_data, status_code = authorisation_system.google_callback_login(code=code, redirect_uri=redirect_uri)
 
     if not response_data["is_successful"]:
@@ -393,7 +393,7 @@ HTML_TEMPLATE = """
 
         <div id="user-info">
             <h2>Welcome</h2>
-            <img id="user-picture" class="profile-img" />
+            <br><br>
             <p><strong id="user-name"></strong></p>
             <p id="user-email"></p>
             <button class="btn btn-danger" onclick="logout()">Logout</button>
@@ -438,7 +438,6 @@ HTML_TEMPLATE = """
 
             document.getElementById("user-name").textContent = user.name;
             document.getElementById("user-email").textContent = user.email;
-            document.getElementById("user-picture").src = user.image || "";
         }
 
         function logout() {

@@ -5,7 +5,6 @@ import time
 from fastapi import FastAPI, Request
 from fastapi.middleware.cors import CORSMiddleware
 from fastapi.responses import JSONResponse
-from slowapi.middleware import SlowAPIMiddleware
 from starlette.responses import JSONResponse
 
 from config import ProjectConfig
@@ -18,8 +17,6 @@ MAX_UPLOAD_SIZE = ProjectConfig.MAX_UPLOAD_SIZE_MB * 1024 * 1024
 
 def create_app():
     app = FastAPI()
-
-    app.add_middleware(SlowAPIMiddleware)
 
     # Origin validation middleware
     allowed_origins = list(ProjectConfig.PRODUCTION_ORIGINS)
