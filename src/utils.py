@@ -210,6 +210,7 @@ def fetch_profile(email: str) -> dict[str, Any]:
         "name": user["name"],
         "phone_number": user["phone_number"],
         "permissions": user.get("permissions", {}),
+        "designation": user.get("designation", ""),
         "created_at": user["created_at"].strftime("%d-%m-%Y"),
     }
 
