@@ -302,7 +302,7 @@ async def change_password(request: Request, decoded_data: dict = {}):
     return JSONResponse(response_data, status_code=status_code)
 
 
-@router.put("/update_user_profile")
+@router.post("/update_user_profile")
 @requires_verification
 async def update_user_profile(request: Request, decoded_data: dict = {}):
     request_data = await request.json()
