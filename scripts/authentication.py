@@ -1,15 +1,24 @@
+import datetime
+import secrets
+import urllib.parse
 from http import HTTPStatus
 from io import BytesIO
 
 from fastapi import APIRouter, File, Request, UploadFile
-from fastapi.responses import JSONResponse, StreamingResponse
+from fastapi.responses import (
+    HTMLResponse,
+    JSONResponse,
+    RedirectResponse,
+    StreamingResponse,
+)
 
 # from scripts.rate_limiter import limiter
 from src.constants import MAX_AGE_AUTH_TOKEN_SECONDS
 from src.cred import Credentials
-from src.enums import Environments
+from src.enums import Environments, MongoCollectionsNames
 from src.exceptions import FileTypeNotSupported
 from src.mongodb.authorisation_system import AuthorisationSystem
+from src.mongodb.base import BaseDatabase
 from src.utils import (
     delete_profile_picture,
     fetch_profile,
@@ -21,6 +30,128 @@ from src.utils import (
 
 router = APIRouter()
 authorisation_system = AuthorisationSystem()
+
+STATE_TTL_SECONDS = 600  # 10 minutes
+
+GOOGLE_OAUTH_SCOPES = " ".join(
+    [
+        "openid",
+        "email",
+        "profile",
+        # "https://www.googleapis.com/auth/spreadsheets",
+        # "https://www.googleapis.com/auth/documents",
+        # "https://www.googleapis.com/auth/presentations",
+    ]
+)
+
+
+@router.get("/google/start")
+# @limiter.limit("10/minute")
+async def google_oauth_start(request: Request):
+
+    if not Credentials.smtp_oauth_client_id:
+        return JSONResponse(
+            {"is_successful": False, "message": "Google OAuth is not configured on this server."},
+            status_code=HTTPStatus.SERVICE_UNAVAILABLE,
+        )
+
+    redirect_uri = Credentials.redirect_url
+    if not redirect_uri:
+        return JSONResponse(
+            {"is_successful": False, "message": "SMTP_OAUTH_REDIRECT_URI is not configured on this server."},
+            status_code=HTTPStatus.SERVICE_UNAVAILABLE,
+        )
+
+    state = secrets.token_urlsafe(32)
+    expires_at = datetime.datetime.now(datetime.timezone.utc) + datetime.timedelta(seconds=STATE_TTL_SECONDS)
+    oauth_states_col = BaseDatabase.get_collection(MongoCollectionsNames.OAUTH_STATES)
+    oauth_states_col.insert_one({"state": state, "expires_at": expires_at})
+
+    params = {
+        "client_id": Credentials.smtp_oauth_client_id,
+        "redirect_uri": redirect_uri,
+        "response_type": "code",
+        "scope": GOOGLE_OAUTH_SCOPES,
+        "access_type": "offline",
+        "prompt": "consent",
+        "include_granted_scopes": "true",
+        "state": state,
+    }
+    auth_url = "https://accounts.google.com/o/oauth2/v2/auth?" + urllib.parse.urlencode(params)
+    return RedirectResponse(url=auth_url, status_code=302)
+
+
+@router.get("/google/callback")
+# @limiter.limit("10/minute")
+async def google_oauth_callback(request: Request, code: str = "", state: str = "", error: str = ""):
+    website_redirect_uri = Credentials.redirect_url
+
+    if error:
+        return RedirectResponse(url=f"{website_redirect_uri}/login?error={urllib.parse.quote(error)}", status_code=302)
+
+    # Validate CSRF state
+    if not state:
+        return JSONResponse(
+            {"is_successful": False, "message": "Invalid or expired state parameter. Please try logging in again."},
+            status_code=HTTPStatus.BAD_REQUEST,
+        )
+
+    oauth_states_col = BaseDatabase.get_collection(MongoCollectionsNames.OAUTH_STATES)
+
+    state_doc = oauth_states_col.find_one({"state": state})
+
+    if not state_doc:
+        return JSONResponse(
+            {
+                "is_successful": False,
+                "message": "Invalid state parameter. This login link has already been used or is invalid. Please try logging in again.",
+            },
+            status_code=HTTPStatus.BAD_REQUEST,
+        )
+
+    now = datetime.datetime.now(datetime.timezone.utc)
+    expires_at = state_doc.get("expires_at")
+    if expires_at:
+        if expires_at.tzinfo is None:
+            expires_at = expires_at.replace(tzinfo=datetime.timezone.utc)
+        if expires_at < now:
+            oauth_states_col.delete_one({"state": state})
+            return JSONResponse(
+                {"is_successful": False, "message": "Login session expired. Please try logging in again."},
+                status_code=HTTPStatus.BAD_REQUEST,
+            )
+
+    oauth_states_col.delete_one({"state": state})
+
+    if not code:
+        return JSONResponse(
+            {"is_successful": False, "message": "Authorization code is missing."},
+            status_code=HTTPStatus.BAD_REQUEST,
+        )
+
+    redirect_uri = Credentials.redirect_url
+    response_data, status_code = authorisation_system.google_callback_login(code=code, redirect_uri=redirect_uri)
+
+    if not response_data["is_successful"]:
+        return JSONResponse(content=response_data, status_code=status_code)
+
+    auth_token = response_data.pop("auth_token", "")
+
+    redirect_response = RedirectResponse(url=website_redirect_uri + "/", status_code=302)
+
+    samesite_setting = "lax"
+    if Credentials.environment != Environments.PRODUCTION:
+        samesite_setting = "none"
+
+    redirect_response.set_cookie(
+        key="auth_token",
+        value=auth_token,
+        secure=True,
+        httponly=True,
+        samesite=samesite_setting,
+        max_age=MAX_AGE_AUTH_TOKEN_SECONDS,
+    )
+    return redirect_response
 
 
 @router.post("/login")
@@ -181,3 +312,143 @@ async def update_user_profile(request: Request, decoded_data: dict = {}):
     )
 
     return JSONResponse(response_data, status_code=status_code)
+
+
+@router.get("/", response_class=HTMLResponse)
+async def login_html():
+    return HTMLResponse(content=HTML_TEMPLATE)
+
+
+HTML_TEMPLATE = """
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Login Test</title>
+
+    <style>
+        * { margin: 0; padding: 0; box-sizing: border-box; }
+
+        body {
+            font-family: 'Segoe UI', Tahoma, Geneva, Verdana, sans-serif;
+            background: linear-gradient(135deg, #0f766e 0%, #0ea5e9 100%);
+            min-height: 100vh;
+            display: flex;
+            justify-content: center;
+            align-items: center;
+            padding: 20px;
+        }
+
+        .container {
+            background: white;
+            padding: 32px 28px;
+            border-radius: 14px;
+            box-shadow: 0 10px 25px rgba(0, 0, 0, 0.18);
+            text-align: center;
+            max-width: 440px;
+            width: 90%;
+        }
+
+        h1 { color: #0f172a; margin-bottom: 10px; }
+        p { color: #475569; margin-bottom: 18px; }
+
+        .profile-img {
+            width: 80px;
+            height: 80px;
+            border-radius: 50%;
+            margin: 14px auto;
+            object-fit: cover;
+            display: block;
+            border: 2px solid #e2e8f0;
+        }
+
+        .btn {
+            border: none;
+            padding: 10px 18px;
+            border-radius: 8px;
+            cursor: pointer;
+            font-size: 14px;
+            margin: 6px;
+            font-weight: 600;
+        }
+
+        .btn-primary { background: #0284c7; color: white; }
+        .btn-danger { background: #dc2626; color: white; }
+
+        .btn:hover { opacity: 0.9; }
+        .muted { color: #64748b; font-size: 13px; }
+
+        #user-info { display: none; }
+    </style>
+</head>
+<body>
+    <div class="container">
+        <div id="login-section">
+            <h1>Google Login Test</h1>
+            <p>Click login to test OAuth and fetch profile.</p>
+            <button class="btn btn-primary" onclick="startGoogleLogin()">Login with Google</button>
+            <p class="muted">You will be redirected to Google and back to this page.</p>
+        </div>
+
+        <div id="user-info">
+            <h2>Welcome</h2>
+            <img id="user-picture" class="profile-img" />
+            <p><strong id="user-name"></strong></p>
+            <p id="user-email"></p>
+            <button class="btn btn-danger" onclick="logout()">Logout</button>
+        </div>
+    </div>
+
+    <script>
+        window.onload = function () {
+            fetchProfile();
+        };
+
+        function fetchProfile() {
+            fetch("/api/get_profile", {
+                method: "GET",
+                credentials: "include"
+            })
+            .then(async (res) => {
+                if (!res.ok) {
+                    throw new Error("Not logged in");
+                }
+                return res.json();
+            })
+            .then((data) => {
+                if (!data.is_successful) {
+                    throw new Error("Profile fetch failed");
+                }
+                showUser(data);
+            })
+            .catch(() => {
+                document.getElementById("login-section").style.display = "block";
+                document.getElementById("user-info").style.display = "none";
+            });
+        }
+
+        function startGoogleLogin() {
+            window.location.href = "/api/google/start";
+        }
+
+        function showUser(user) {
+            document.getElementById("login-section").style.display = "none";
+            document.getElementById("user-info").style.display = "block";
+
+            document.getElementById("user-name").textContent = user.name;
+            document.getElementById("user-email").textContent = user.email;
+            document.getElementById("user-picture").src = user.image || "";
+        }
+
+        function logout() {
+            fetch("/api/logout", {
+                method: "GET",
+                credentials: "include"
+            })
+            .then(() => fetchProfile());
+        }
+    </script>
+</body>
+</html>
+"""

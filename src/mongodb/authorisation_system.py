@@ -4,9 +4,13 @@ from datetime import datetime, timedelta, timezone
 from http import HTTPStatus
 from typing import Any
 
+import requests
+from google.auth.transport import requests as google_requests
+from google.oauth2 import id_token as google_id_token
 from pydantic import ValidationError
 
 from config import ProjectConfig
+from src.cred import Credentials
 from src.encryption_system import EncryptionSystem
 from src.enums import MongoCollectionsNames, UserRoles
 from src.mongodb.base import BaseDatabase
@@ -17,6 +21,121 @@ from src.utils import generate_randomised_numeric_string, hash_password, verify_
 
 class AuthorisationSystem:
     collection = BaseDatabase.get_collection(collection_name=MongoCollectionsNames.USER_MASTER)
+
+    def fetch_user_by_email(self, email: str) -> dict | None:
+        return self.collection.find_one({"email": email.lower()})
+
+    def google_callback_login(self, code: str, redirect_uri: str) -> tuple[dict, int]:
+        try:
+            # Exchange code for tokens using client_secret (server-side only)
+            token_response = requests.post(
+                "https://oauth2.googleapis.com/token",
+                data={
+                    "code": code,
+                    "client_id": Credentials.smtp_oauth_client_id,
+                    "client_secret": Credentials.smtp_oauth_client_secret,
+                    "redirect_uri": redirect_uri,
+                    "grant_type": "authorization_code",
+                },
+            )
+
+            if token_response.status_code != 200:
+                return {
+                    "is_successful": False,
+                    "message": "Failed to exchange authorization code for tokens",
+                }, HTTPStatus.UNAUTHORIZED
+
+            tokens = token_response.json()
+            access_token = tokens.get("access_token")
+            new_refresh_token = tokens.get("refresh_token")
+            expires_in = int(tokens.get("expires_in", 3600))
+            raw_id_token = tokens.get("id_token")
+
+            if not access_token:
+                return {
+                    "is_successful": False,
+                    "message": "No access token received from Google",
+                }, HTTPStatus.UNAUTHORIZED
+
+            # Verify id_token to securely extract user identity
+            email = None
+            picture = ""
+            if raw_id_token:
+                try:
+                    id_token_claims = google_id_token.verify_oauth2_token(
+                        raw_id_token,
+                        google_requests.Request(),
+                        Credentials.smtp_oauth_client_id,
+                    )
+                    email = id_token_claims.get("email")
+                    picture = id_token_claims.get("picture", "")
+                except Exception as e:
+                    logger.warning(f"id_token verification failed, falling back to userinfo endpoint: {e}")
+
+            # Fallback: fetch user info from userinfo endpoint
+            if not email:
+                userinfo_response = requests.get(
+                    "https://www.googleapis.com/oauth2/v2/userinfo",
+                    headers={"Authorization": f"Bearer {access_token}"},
+                )
+                if userinfo_response.status_code != 200:
+                    return {
+                        "is_successful": False,
+                        "message": "Failed to fetch user info from Google",
+                    }, HTTPStatus.UNAUTHORIZED
+                user_info = userinfo_response.json()
+                email = user_info.get("email")
+                picture = user_info.get("picture", "")
+
+            if not email:
+                return {"is_successful": False, "message": "Email not found in Google token"}, HTTPStatus.UNAUTHORIZED
+
+        except Exception as e:
+            return {"is_successful": False, "message": f"Token exchange failed: {str(e)}"}, HTTPStatus.UNAUTHORIZED
+
+        email = email.lower()
+        user_db = self.fetch_user_by_email(email=email)
+        if not user_db:
+            return {
+                "is_successful": False,
+                "message": "You are not authorised to access this application. Please contact support for further assistance.",
+            }, HTTPStatus.UNAUTHORIZED
+
+        if user_db["is_disabled"]:
+            return {
+                "is_successful": False,
+                "message": "Your account has been disabled. Please contact support for further assistance.",
+            }, HTTPStatus.UNAUTHORIZED
+
+        token_expiry = datetime.now(timezone.utc) + timedelta(seconds=expires_in)
+        update_data: dict = {
+            "google_access_token": access_token,
+            "google_token_expiry": token_expiry,
+            "google_token_updated_at": datetime.now(timezone.utc),
+        }
+
+        # Only overwrite refresh token if Google returned a new one
+        if new_refresh_token:
+            update_data["google_refresh_token"] = new_refresh_token
+
+        self.collection.update_one({"email": email}, {"$set": update_data})
+
+        encryption_system = EncryptionSystem()
+        encryption_dict = {
+            "email": email,
+            "role": user_db["role"],
+        }
+
+        auth_token = encryption_system.encrypt_dict(input_json=encryption_dict)
+        return {
+            "is_successful": True,
+            "is_user_exists": True,
+            "auth_token": auth_token,
+            "message": "Sign-in successful!",
+            "name": user_db["name"],
+            "role": user_db["role"],
+            "email": email,
+        }, HTTPStatus.OK
 
     def user_login(self, login_data: dict) -> dict:
         """Authorises user data during login
