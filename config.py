@@ -52,14 +52,14 @@ class ProjectConfig:
 
     # Email Theme  (hex colours used in transactional email templates)
     EMAIL_THEME: dict = {
-        "primary_color": "#1D71D4",
-        "primary_dark": "#1e40af",
-        "primary_darker": "#1e3a8a",
-        "background_light": "#eff6ff",
-        "background_box": "#dbeafe",
-        "border_color": "#3b82f6",
-        "text_primary": "#333333",
-        "text_secondary": "#6b7280",
+        "primary_color": "#111111",
+        "primary_dark": "#000000",
+        "primary_darker": "#000000",
+        "background_light": "#f5f5f5",
+        "background_box": "#fafafa",
+        "border_color": "#d4d4d4",
+        "text_primary": "#111111",
+        "text_secondary": "#525252",
         "white": "#ffffff",
-        "footer_bg": "#f9fafb",
+        "footer_bg": "#f3f3f3",
     }
