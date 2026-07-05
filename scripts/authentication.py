@@ -190,10 +190,7 @@ async def logout(request: Request, decoded_data: dict = {}):
     email = decoded_data["email"]
     result = authorisation_system.user_logout_db(email=email)
     if result.get("is_successful"):
-        logout_user(is_successful=True, message="User successfully logged out!", status_code=200)
-        return JSONResponse(
-            {"is_successful": True, "message": "User successfully logged out!"}, status_code=HTTPStatus.OK
-        )
+        return logout_user(is_successful=True, message="User successfully logged out!", status_code=200)
 
     return JSONResponse({"is_successful": False, "message": "User not found."}, status_code=HTTPStatus.NOT_FOUND)
 
