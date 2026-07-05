@@ -43,6 +43,12 @@ class LeadManagement:
 
         lead_data = validated_request_data.model_dump()
 
+        if not validated_request_data.sales_representative_emails:
+            return {
+                "is_successful": False,
+                "message": "At least one sales representative email is required.",
+            }, HTTPStatus.BAD_REQUEST
+
         is_valid, normalized_emails = self._check_all_sales_representatives_exist(
             validated_request_data.sales_representative_emails, tenant_id
         )
@@ -74,7 +80,7 @@ class LeadManagement:
             message=f"ADDED a new lead: {validated_request_data.name}({validated_request_data.email})",
         )
 
-        return {"is_successful": True, "lead_code": lead_code, "message": "Lead created successfully."}, HTTPStatus.OK
+        return {"is_successful": True, "message": "Lead created successfully."}, HTTPStatus.OK
 
     def update_lead(self, request_data: dict, current_user_email: str, tenant_id: str) -> tuple[dict, int]:
         lead_code = request_data["lead_code"]
@@ -85,6 +91,12 @@ class LeadManagement:
             return {"is_successful": False, "message": "Invalid or incomplete request data."}, HTTPStatus.BAD_REQUEST
 
         update_data = validated_request_data.model_dump()
+
+        if not validated_request_data.sales_representative_emails:
+            return {
+                "is_successful": False,
+                "message": "Sales representative emails cannot be empty.",
+            }, HTTPStatus.BAD_REQUEST
 
         is_valid, normalized_emails = self._check_all_sales_representatives_exist(
             validated_request_data.sales_representative_emails, tenant_id
@@ -112,7 +124,7 @@ class LeadManagement:
             current_user_email=current_user_email,
             tenant_id=tenant_id,
             log_action_type=LogActionType.EDIT,
-            message=f"UPDATED lead: {result['name' ]}({result.get('email')})",
+            message=f"UPDATED lead: {result['name']}({result.get('email')})",
         )
 
         return {"is_successful": True, "message": "Lead updated successfully."}, HTTPStatus.OK
@@ -209,7 +221,7 @@ class LeadManagement:
                                 },
                             }
                         },
-                        {"$project": {"_id": 0}},
+                        {"$project": {"_id": 0, "tenant_id": 0, "lead_code": 0, "created_by": 0}},
                     ],
                     "as": "comments",
                 }
@@ -224,7 +236,15 @@ class LeadManagement:
                     }
                 }
             },
-            {"$project": {"_id": 0}},
+            {
+                "$project": {
+                    "_id": 0,
+                    "tenant_id": 0,
+                    "updated_at": 0,
+                    "updated_by": 0,
+                    "sales_representative_emails": 0,
+                }
+            },
             {"$skip": skip},
             {"$limit": batch_size},
         ]
@@ -236,6 +256,10 @@ class LeadManagement:
         count_res = list(self.collection.aggregate(count_pipeline))
         total = count_res[0]["total"] if count_res else 0
         total_pages = (total + batch_size - 1) // batch_size if batch_size > 0 else 1
+
+        print(
+            f"Fetched {len(leads)} leads for tenant_id: {tenant_id}, batch_number: {batch_number}, batch_size: {batch_size}, search_query: '{search_query}'"
+        )
 
         return {
             "is_successful": True,

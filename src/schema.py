@@ -84,6 +84,7 @@ class CompanyProfile(BaseModel):
 # Employee Master
 class EmployeePermissions(BaseModel):
     employee_master: EmployeePermissionType = EmployeePermissionType.NOT_ALLOWED
+    leads: EmployeePermissionType = EmployeePermissionType.NOT_ALLOWED
     log_manager: EmployeePermissionType = EmployeePermissionType.NOT_ALLOWED
 
 

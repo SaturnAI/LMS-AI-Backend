@@ -1,6 +1,4 @@
-from datetime import datetime
-
-import pytz
+from datetime import datetime, timezone
 
 from src.enums import LogActionType, MongoCollectionsNames
 from src.mongodb.base import BaseDatabase
@@ -18,24 +16,16 @@ class LogManager:
         log_action_type: LogActionType,
         message: str,
     ) -> dict:
-
-        ist_timezone = pytz.timezone("Asia/Kolkata")
-        current_ist_time = datetime.now(ist_timezone)
-        formatted_date = current_ist_time.strftime("%d-%m-%Y")
-        formatted_time = current_ist_time.strftime("%I:%M:%S %p IST")
-
         user_data = fetch_profile(email=current_user_email)
         message = f"{user_data['name']}({user_data['email']}) {message}"
 
         log = {
-            "time": formatted_time,
-            "date": formatted_date,
+            "created_at": datetime.now(timezone.utc),
             "action_performer_name": user_data["name"],
             "action_performer_email": user_data["email"],
             "message": message,
             "action_type": log_action_type.value,
             "tenant_id": tenant_id,
-            "timestamp": current_ist_time,
         }
 
         # Perform the upsert operation
@@ -67,14 +57,30 @@ class LogManager:
         total_logs = cls.collection.count_documents(query)
         total_pages = (total_logs + BATCH_SIZE - 1) // BATCH_SIZE
 
-        cursor = (
-            cls.collection.find(query, {"_id": 0, "tenant_id": 0, "timestamp": 0})
-            .sort("timestamp", -1)
-            .skip(skip)
-            .limit(BATCH_SIZE)
-        )
+        pipeline = [
+            {"$match": query},
+            {"$sort": {"created_at": -1}},
+            {"$skip": skip},
+            {"$limit": BATCH_SIZE},
+            {
+                "$project": {
+                    "_id": 0,
+                    "created_at": {
+                        "$dateToString": {
+                            "format": "%H:%M:%S %d-%m-%Y UTC",
+                            "date": "$created_at",
+                            "timezone": "UTC",
+                        }
+                    },
+                    "action_performer_name": 1,
+                    "action_performer_email": 1,
+                    "message": 1,
+                    "action_type": 1,
+                }
+            },
+        ]
 
-        logs = list(cursor)
+        logs = list(cls.collection.aggregate(pipeline))
 
         return {
             "activity_logs": logs,

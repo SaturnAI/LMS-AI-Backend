@@ -20,7 +20,6 @@ httpx
 pydantic
 python-dotenv
 pymongo
-pytz
 pillow
 
 # To identify file type/extension
