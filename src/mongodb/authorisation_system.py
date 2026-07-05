@@ -108,17 +108,19 @@ class AuthorisationSystem:
             }, HTTPStatus.UNAUTHORIZED
 
         token_expiry = datetime.now(timezone.utc) + timedelta(seconds=expires_in)
-        update_data: dict = {
-            "google_access_token": access_token,
-            "google_token_expiry": token_expiry,
-            "google_token_updated_at": datetime.now(timezone.utc),
-        }
 
-        # Only overwrite refresh token if Google returned a new one
-        if new_refresh_token:
-            update_data["google_refresh_token"] = new_refresh_token
+        # TODO: Update the user record with the new access token, refresh token, and expiry time when other features are implemented. For now, we are not storing these tokens in the database. Also Encrypt the access token and refresh token before storing in the database. This will be implemented in the future.
+        # update_data: dict = {
+        #     "google_access_token": access_token,
+        #     "google_token_expiry": token_expiry,
+        #     "google_token_updated_at": datetime.now(timezone.utc),
+        # }
 
-        self.collection.update_one({"email": email}, {"$set": update_data})
+        # # Only overwrite refresh token if Google returned a new one
+        # if new_refresh_token:
+        #     update_data["google_refresh_token"] = new_refresh_token
+
+        # self.collection.update_one({"email": email}, {"$set": update_data})
 
         encryption_system = EncryptionSystem()
         encryption_dict = {

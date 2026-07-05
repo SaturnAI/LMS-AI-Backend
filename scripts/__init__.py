@@ -61,6 +61,7 @@ def create_app():
     from scripts.authentication import router as authentication
     from scripts.company_master import router as company_master
     from scripts.employee_master import router as employee_master
+    from scripts.lead_management import router as lead_management
     from scripts.log_manager import router as log_manager
     from scripts.super_admin_master import router as super_admin_master
 
@@ -68,6 +69,7 @@ def create_app():
     app.include_router(super_admin_master, prefix=prefix + "/super_admin_master")
     app.include_router(employee_master, prefix=prefix + "/employee_master")
     app.include_router(company_master, prefix=prefix + "/company_master")
+    app.include_router(lead_management, prefix=prefix + "/lead_management")
     app.include_router(log_manager, prefix=prefix + "/log_manager")
 
     return app

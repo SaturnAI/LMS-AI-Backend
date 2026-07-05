@@ -2,7 +2,13 @@ from typing import Optional, Union
 
 from pydantic import BaseModel, Field
 
-from src.enums import CompanyBillingPlan, EmployeePermissionType
+from src.enums import (
+    CompanyBillingPlan,
+    EmployeePermissionType,
+    LeadPriority,
+    LeadSource,
+    LeadStatus,
+)
 
 
 class UserLoginRequest(BaseModel):
@@ -86,6 +92,44 @@ class EmployeeDetails(BaseModel):
     email: str = Field(..., max_length=300)
     phone_number: str = Field(..., max_length=20)
     permissions: EmployeePermissions
+
+
+class CompanyAddress(BaseModel):
+    address_1: Optional[str] = Field(default=None, max_length=100)
+    address_2: Optional[str] = Field(default=None, max_length=100)
+    country: Optional[str] = Field(default=None, max_length=50)
+    state: Optional[str] = Field(default=None, max_length=50)
+    city: Optional[str] = Field(default=None, max_length=30)
+    pincode: Optional[str] = Field(default=None, max_length=15)
+
+
+class LeadSpecificPersonOfContact(BaseModel):
+    name: Optional[str] = Field(default=None, max_length=100)
+    email: Optional[str] = Field(default=None, max_length=300)
+    phone_number: Optional[str] = Field(default=None, max_length=20)
+    designation: Optional[str] = Field(default=None, max_length=100)
+
+
+class LeadDetails(BaseModel):
+    name: str = Field(..., max_length=200)
+    company_name: str = Field(..., max_length=100)
+    sales_representative_emails: list[str] = Field(default_factory=list)
+
+    email: Optional[str] = Field(default=None, max_length=300)
+    alt_email: Optional[str] = Field(default=None, max_length=300)
+    phone_number: Optional[str] = Field(default=None, max_length=20)
+    alt_phone_number: Optional[str] = Field(default=None, max_length=20)
+    designation: Optional[str] = Field(default=None, max_length=100)
+
+    company_registered_address: Optional[CompanyAddress] = None
+    company_operational_address: Optional[CompanyAddress] = None
+
+    status: LeadStatus = LeadStatus.NEW
+    source: LeadSource = LeadSource.OTHER
+    priority: LeadPriority = LeadPriority.MEDIUM
+
+    remarks: Optional[str] = Field(default=None, max_length=500)
+    person_of_contact: Optional[LeadSpecificPersonOfContact] = None
 
 
 # AI Analyser

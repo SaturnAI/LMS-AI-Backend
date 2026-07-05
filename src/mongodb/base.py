@@ -42,3 +42,19 @@ class BaseDatabase:
             [("tenant_id", ASCENDING), ("timestamp", DESCENDING)],
             name="idx_log_tenant_timestamp_desc",
         )
+
+        # LEADS: unique lead_code and tenant-scoped queries
+
+        leads = cls.get_collection(MongoCollectionsNames.LEADS)
+        leads.create_index([("lead_code", ASCENDING)], name="idx_lead_code", unique=True)
+        leads.create_index(
+            [("tenant_id", ASCENDING), ("created_at", DESCENDING)],
+            name="idx_lead_tenant_created_at",
+        )
+
+        lead_comments = cls.get_collection(MongoCollectionsNames.LEAD_COMMENTS)
+        lead_comments.create_index([("lead_code", ASCENDING)], name="idx_lead_comments_lead_code")
+        lead_comments.create_index(
+            [("tenant_id", ASCENDING), ("created_at", DESCENDING)],
+            name="idx_lead_comments_tenant_created_at",
+        )

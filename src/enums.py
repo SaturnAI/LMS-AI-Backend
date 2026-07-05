@@ -15,6 +15,8 @@ class ApiReponseStatus(str, Enum):
 class MongoCollectionsNames(str, Enum):
     USER_MASTER = "user_master"
     COMPANY_MASTER = "company_master"
+    LEADS = "leads"
+    LEAD_COMMENTS = "lead_comments"
     LOG_MANAGER = "log_manager"
     AUTH_KEY_STORE = "auth_key_store"
     OAUTH_STATES = "oauth_states"
@@ -64,3 +66,28 @@ class CompanyBillingPlan(str, Enum):
     FREE = "free"
     PRO = "pro"
     ENTERPRISE = "enterprise"
+
+
+class LeadStatus(str, Enum):
+    NEW = "new"
+    CONTACTED = "contacted"
+    NURTURE = "nurture"
+    QUALIFIED = "qualified"
+    WON = "won"
+    LOST = "lost"
+
+
+class LeadSource(str, Enum):
+    WEBSITE = "website"
+    REFERRAL = "referral"
+    COLD_CALL = "cold_call"
+    SOCIAL_MEDIA = "social_media"
+    EMAIL_CAMPAIGN = "email_campaign"
+    TRADE_SHOW = "trade_show"
+    OTHER = "other"
+
+
+class LeadPriority(str, Enum):
+    HIGH = "high"
+    MEDIUM = "medium"
+    LOW = "low"
