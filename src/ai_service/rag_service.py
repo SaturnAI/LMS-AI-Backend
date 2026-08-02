@@ -32,7 +32,7 @@ OPENAI_API_KEY = Credentials.openai_api_key
 OPENAI_EMBEDDINGS_URL = "https://api.openai.com/v1/embeddings"
 OPENAI_RESPONSES_URL = "https://api.openai.com/v1/responses"
 EMBEDDING_MODEL = ProjectConfig.CODE_EMBEDDING_MODEL
-MODEL = GPTModels.GPT_5_4_MINI.value
+MODEL = GPTModels.GPT_5_6_LUNA.value
 REASONING_EFFORT = "low"
 
 CHUNK_SIZE_CHARS = ProjectConfig.CODE_INDEX_CHUNK_SIZE_CHARS
