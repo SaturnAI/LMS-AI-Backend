@@ -67,9 +67,9 @@ class LogManager:
                     "_id": 0,
                     "created_at": {
                         "$dateToString": {
-                            "format": "%H:%M:%S %d-%m-%Y UTC",
+                            "format": "%H:%M:%S %d-%m-%Y IST",
                             "date": "$created_at",
-                            "timezone": "UTC",
+                            "timezone": "Asia/Kolkata",
                         }
                     },
                     "action_performer_name": 1,

@@ -215,8 +215,9 @@ class LeadManagement:
                                 "commented_user": {"$arrayElemAt": ["$commented_user", 0]},
                                 "created_at": {
                                     "$dateToString": {
-                                        "format": "%H:%M:%S %d-%m-%Y UTC",
+                                        "format": "%H:%M:%S %d-%m-%Y IST",
                                         "date": "$created_at",
+                                        "timezone": "Asia/Kolkata",
                                     }
                                 },
                             }
@@ -230,8 +231,9 @@ class LeadManagement:
                 "$addFields": {
                     "created_at": {
                         "$dateToString": {
-                            "format": "%H:%M:%S %d-%m-%Y UTC",
+                            "format": "%H:%M:%S %d-%m-%Y IST",
                             "date": "$created_at",
+                            "timezone": "Asia/Kolkata",
                         }
                     }
                 }

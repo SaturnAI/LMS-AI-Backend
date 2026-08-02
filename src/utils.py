@@ -3,7 +3,7 @@ import io
 import logging as logger
 import random
 import string
-from datetime import datetime, timezone
+from datetime import datetime, timedelta, timezone
 from functools import wraps
 from http import HTTPStatus
 from typing import Any, Optional
@@ -21,6 +21,17 @@ from src.exceptions import FileSizeExceeded, FileTypeNotSupported
 from src.mongodb.base import BaseDatabase
 from src.schema import CompanyDetails
 from src.send_email import SendEmail
+
+IST_TIMEZONE = timezone(timedelta(hours=5, minutes=30))
+
+
+def to_ist_datetime(value: datetime) -> datetime:
+    dt_value = value if value.tzinfo else value.replace(tzinfo=timezone.utc)
+    return dt_value.astimezone(IST_TIMEZONE)
+
+
+def format_datetime_ist(value: datetime, fmt: str = "%H:%M:%S %d-%m-%Y IST") -> str:
+    return to_ist_datetime(value).strftime(fmt)
 
 
 def handle_exception(f):
@@ -202,6 +213,11 @@ def fetch_profile(email: str) -> dict[str, Any]:
     if not user:
         return {"is_successful": False, "message": "User not found"}
 
+    created_at = user.get("created_at")
+    created_at_text = ""
+    if isinstance(created_at, datetime):
+        created_at_text = format_datetime_ist(created_at, fmt="%d-%m-%Y")
+
     profile = {
         "email": user["email"],
         "is_successful": True,
@@ -211,7 +227,7 @@ def fetch_profile(email: str) -> dict[str, Any]:
         "phone_number": user["phone_number"],
         "permissions": user.get("permissions", {}),
         "designation": user.get("designation", ""),
-        "created_at": user["created_at"].strftime("%d-%m-%Y"),
+        "created_at": created_at_text,
     }
 
     tenant_id = None
