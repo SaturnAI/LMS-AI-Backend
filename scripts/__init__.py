@@ -58,6 +58,7 @@ def create_app():
 
     prefix = "/api"
 
+    from scripts.ai_service import router as ai_service
     from scripts.authentication import router as authentication
     from scripts.company_master import router as company_master
     from scripts.employee_master import router as employee_master
@@ -66,6 +67,7 @@ def create_app():
     from scripts.super_admin_master import router as super_admin_master
 
     app.include_router(authentication, prefix=prefix)
+    app.include_router(ai_service, prefix=prefix + "/ai_service")
     app.include_router(super_admin_master, prefix=prefix + "/super_admin_master")
     app.include_router(employee_master, prefix=prefix + "/employee_master")
     app.include_router(company_master, prefix=prefix + "/company_master")

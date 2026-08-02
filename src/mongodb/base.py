@@ -58,3 +58,35 @@ class BaseDatabase:
             [("tenant_id", ASCENDING), ("created_at", DESCENDING)],
             name="idx_lead_comments_tenant_created_at",
         )
+
+        ai_lead_files = cls.get_collection(MongoCollectionsNames.AI_LEAD_FILES)
+        ai_lead_files.create_index([("file_id", ASCENDING)], name="idx_ai_lead_file_id", unique=True)
+        ai_lead_files.create_index(
+            [("tenant_id", ASCENDING), ("lead_code", ASCENDING), ("uploaded_at", DESCENDING)],
+            name="idx_ai_lead_files_tenant_lead_uploaded_at",
+        )
+
+        ai_lead_chunks = cls.get_collection(MongoCollectionsNames.AI_LEAD_CHUNKS)
+        ai_lead_chunks.create_index([("chunk_id", ASCENDING)], name="idx_ai_lead_chunk_id", unique=True)
+        ai_lead_chunks.create_index(
+            [("tenant_id", ASCENDING), ("lead_code", ASCENDING), ("created_at", DESCENDING)],
+            name="idx_ai_lead_chunks_tenant_lead_created_at",
+        )
+        ai_lead_chunks.create_index(
+            [("tenant_id", ASCENDING), ("lead_code", ASCENDING), ("file_id", ASCENDING)],
+            name="idx_ai_lead_chunks_tenant_lead_file",
+        )
+
+        ai_lead_query_cache = cls.get_collection(MongoCollectionsNames.AI_LEAD_QUERY_CACHE)
+        ai_lead_query_cache.create_index([("query_id", ASCENDING)], name="idx_ai_lead_query_id", unique=True)
+        ai_lead_query_cache.create_index(
+            [("tenant_id", ASCENDING), ("lead_code", ASCENDING), ("created_at", DESCENDING)],
+            name="idx_ai_lead_query_cache_tenant_lead_created_at",
+        )
+
+        ai_lead_index_jobs = cls.get_collection(MongoCollectionsNames.AI_LEAD_INDEX_JOBS)
+        ai_lead_index_jobs.create_index([("job_id", ASCENDING)], name="idx_ai_lead_index_jobs_job_id", unique=True)
+        ai_lead_index_jobs.create_index(
+            [("tenant_id", ASCENDING), ("lead_code", ASCENDING), ("job_id", ASCENDING)],
+            name="idx_ai_lead_index_jobs_tenant_lead_job",
+        )

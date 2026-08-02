@@ -137,7 +137,7 @@ async def google_oauth_callback(request: Request, code: str = "", state: str = "
 
     auth_token = response_data.pop("auth_token", "")
 
-    redirect_response = RedirectResponse(url=website_redirect_uri + "/", status_code=302)
+    redirect_response = RedirectResponse(url=website_redirect_uri + "/dashboard", status_code=302)
 
     samesite_setting = "lax"
     if Credentials.environment != Environments.PRODUCTION:

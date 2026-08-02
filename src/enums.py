@@ -20,6 +20,10 @@ class MongoCollectionsNames(str, Enum):
     LOG_MANAGER = "log_manager"
     AUTH_KEY_STORE = "auth_key_store"
     OAUTH_STATES = "oauth_states"
+    AI_LEAD_FILES = "ai_lead_files"
+    AI_LEAD_CHUNKS = "ai_lead_chunks"
+    AI_LEAD_QUERY_CACHE = "ai_lead_query_cache"
+    AI_LEAD_INDEX_JOBS = "ai_lead_index_jobs"
 
     # Just for Permissions
     EMPLOYEE_MASTER = "employee_master"
@@ -58,6 +62,12 @@ class PromptFileName(str, Enum):
 
 class GptModel(str, Enum):
     GPT_5_MINI = "gpt-5-mini"
+    GPT_5_4_MINI = "gpt-5.4-mini"
+    GPT_5_4_NANO = "gpt-5.4-nano"
+
+
+class GPTModels(str, Enum):
+    GPT_5_4 = "gpt-5.4"
     GPT_5_4_MINI = "gpt-5.4-mini"
     GPT_5_4_NANO = "gpt-5.4-nano"
 

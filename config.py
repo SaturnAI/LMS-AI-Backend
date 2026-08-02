@@ -65,3 +65,33 @@ class ProjectConfig:
         "white": "#ffffff",
         "footer_bg": "#f3f3f3",
     }
+
+    # AI Query Cache
+    # Set to False to disable semantic query caching entirely.
+    QUERY_CACHE_ENABLED: bool = True
+    # Cosine-similarity threshold (0-1) for semantic cache hit.
+    QUERY_CACHE_SIMILARITY_THRESHOLD: float = 0.90
+
+    # Code Indexing (Repo/Lead Q&A)
+    CODE_INDEX_MAX_FILE_SIZE_MB: int = 2
+    CODE_INDEX_MAX_FILES: int = 5000
+    # Logical chunking budget in characters per chunk.
+    CODE_INDEX_UNIT_MAX_CHARS: int = 3000
+    # Backward-compat alias used by older code paths.
+    CODE_INDEX_CHUNK_SIZE_CHARS: int = CODE_INDEX_UNIT_MAX_CHARS
+    CODE_INDEX_CHUNK_OVERLAP_LINES: int = 3
+    CODE_INDEX_STRATEGY: str = "ast_logical"
+
+    # Embeddings for Q&A
+    CODE_EMBEDDING_MODEL: str = "text-embedding-3-small"
+
+    # Retrieval
+    CODE_QA_TOP_K: int = 5
+    # In-memory embedding cache guardrails (per app process)
+    CODE_QA_EMBED_CACHE_TTL_SECONDS: int = 600
+    CODE_QA_EMBED_CACHE_MAX_PROJECTS: int = 5
+
+    # AI Chat Context
+    CHAT_CONTEXT_LAST_N: int = 7
+    CHAT_SUMMARY_BATCH_SIZE: int = 7
+    CHAT_SUMMARY_MAX_CHARS: int = 1200

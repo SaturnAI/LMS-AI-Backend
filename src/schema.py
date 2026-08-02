@@ -145,3 +145,17 @@ class JSONSchema(BaseModel):
     instructions: str
     examples: Optional[list[Examples]] = []
     important_notes: Optional[list] = []
+
+
+class IndexTextRequest(BaseModel):
+    lead_code: str = Field(..., min_length=1, max_length=100)
+    title: str = Field(default="text-input", max_length=200)
+    text: str = Field(..., min_length=1)
+    source: str = Field(default="manual_input", max_length=100)
+
+
+class AskQuestionRequest(BaseModel):
+    lead_code: str = Field(..., min_length=1, max_length=100)
+    question: str = Field(..., min_length=1)
+    stream: bool = True
+    top_k: int = 5

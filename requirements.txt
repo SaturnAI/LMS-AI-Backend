@@ -15,12 +15,14 @@ requests
 
 # HTTP Requests
 httpx
+numpy
 
 # Scripts
 pydantic
 python-dotenv
 pymongo
 pillow
+pypdf
 
 # To identify file type/extension
 python-magic # For Linux
